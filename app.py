@@ -7,23 +7,23 @@ from langchain_community.embeddings import OpenAIEmbeddings  # Allowed for Query
 
 class Greeting_Obnoxious_Agent:
     def __init__(self, client) -> None:
-        """Handles both greeting and obnoxious query detection in a single API call."""
+        # TODO: Initialize the client and prompt for the Greeting_Obnoxious_Agent
         self.client = client
         self.prompt = None
 
     def set_prompt(self, prompt):
-        """Sets the system prompt."""
+        # TODO: Set the prompt for the Greeting_Obnoxious_Agent
         self.prompt = prompt
 
     def extract_action(self, response) -> (str, str):
-        """Parses the response to detect if it's a greeting or obnoxious."""
+        # TODO: Extract the action from the response
         lines = response.lower().split('\n')
         is_greeting = "yes" in lines[0]
         is_obnoxious = "yes" in lines[1]
         return ("Yes" if is_greeting else "No"), ("Yes" if is_obnoxious else "No")
 
     def check_query(self, query):
-        """Checks if the query is a greeting or obnoxious (single API call)."""
+        # TODO: Check if the query is a greeting or obnoxious (Single API Call)
         response = self.client.chat.completions.create(
             model="gpt-4",
             messages=[{
@@ -38,7 +38,7 @@ class Greeting_Obnoxious_Agent:
         return self.extract_action(response.choices[0].message.content)
 
     def get_greeting_response(self):
-        """Generates a friendly greeting response."""
+        # TODO: Generate a friendly greeting message for the user
         response = self.client.chat.completions.create(
             model="gpt-4",
             messages=[{
@@ -51,14 +51,14 @@ class Greeting_Obnoxious_Agent:
 
 class Query_Agent:
     def __init__(self, pinecone_index, openai_client, embeddings) -> None:
-        """Handles refining queries and retrieving relevant documents from Pinecone."""
+        # TODO: Initialize the Query_Agent agent
         self.pinecone_index = pinecone_index
         self.openai_client = openai_client
         self.embeddings = embeddings
         self.prompt = None
 
     def query_vector_store(self, query, k=5, nameSpace: str = "ns500"):
-        """Queries the Pinecone vector store and retrieves relevant documents."""
+        # TODO: Query the Pinecone vector store
         vector = self.embeddings.embed_query(query)
         results = self.pinecone_index.query(
             vector=vector,
@@ -70,42 +70,40 @@ class Query_Agent:
         return "\n\n".join(relevant_contexts)
 
     def set_prompt(self, prompt):
-        """Sets the prompt for refining queries."""
+        # TODO: Set the prompt for the Query_Agent agent
         self.prompt = prompt
 
-    def extract_action(self, query, conversation_context=None):
-        """Refines the user query before retrieving documents."""
-        messages = [
-            {"role": "system", "content": "Your task is to refine user queries for better document retrieval accuracy."}
-        ]
-        if conversation_context:
-            messages.append({"role": "system", "content": f"Conversation history:\n{conversation_context}"})
-        messages.append({"role": "user", "content": f"Original Query: {query}\nRefined Query:"})
-
+    def extract_action(self, query):
+        # TODO: Extract the refined query
         response = self.openai_client.chat.completions.create(
             model="gpt-4",
-            messages=messages
+            messages=[{
+                "role": "system",
+                "content": "Your task is to refine user queries for better document retrieval accuracy."
+            }, {
+                "role": "user",
+                "content": f"Original Query: {query}\nRefined Query:"
+            }]
         )
-        refined_query = response.choices[0].message.content.strip()
-        return refined_query if refined_query else query
+        return response.choices[0].message.content.strip()
 
 
 class Relevant_Documents_Agent:
     def __init__(self, client) -> None:
-        """Checks if retrieved documents are relevant to the query."""
+        # TODO: Initialize the Relevant_Documents_Agent
         self.client = client
         self.prompt = None
 
     def set_prompt(self, prompt):
-        """Sets the prompt for document relevance checking."""
+        # TODO: Set the prompt for the Relevant_Documents_Agent
         self.prompt = prompt
 
     def extract_action(self, response) -> bool:
-        """Extracts whether the documents are relevant."""
+        # TODO: Extract if the documents are relevant
         return "yes" in response.lower()
 
     def get_relevance(self, query, documents) -> str:
-        """Determines if the retrieved documents are relevant to the query."""
+        # TODO: Get if the retrieved documents are relevant
         response = self.client.chat.completions.create(
             model="gpt-4",
             messages=[{
@@ -124,23 +122,23 @@ class Relevant_Documents_Agent:
 
 class Answering_Agent:
     def __init__(self, openai_client, mode) -> None:
-        """Generates responses based on retrieved documents."""
+        # TODO: Initialize the Answering_Agent
         self.openai_client = openai_client
-        self.mode = mode
+        self.mode = mode  # Assume default is "concise" or "chatty"
 
-    def generate_response(self, query, docs, conv_history, mode, k=5):
-        """Generates a response only if relevant documents are found."""
+    def generate_response(self, query, docs):
+        # TODO: Generate a response to the user's query
         response = self.openai_client.chat.completions.create(
             model="gpt-4",
             messages=[{
                 "role": "system",
-                "content": "Provide a detailed and engaging response based on the given docs and conversation history."
+                "content": "Provide a detailed and engaging response based on the given documents."
             }, {
                 "role": "system",
                 "content": f"Context:\n{docs}"
             }, {
                 "role": "user",
-                "content": f"User Query: {query}\nConversation History: {conv_history}\nResponse:"
+                "content": f"User Query: {query}\nResponse:"
             }]
         )
         return response.choices[0].message.content
@@ -148,16 +146,15 @@ class Answering_Agent:
 
 class Head_Agent:
     def __init__(self, openai_key, pinecone_key) -> None:
-        """Coordinates all agents and ensures a max of 3 API calls per query."""
+        # TODO: Initialize the Head_Agent
         openai.api_key = openai_key
         pc = pinecone.Pinecone(api_key=pinecone_key)
         self.pinecone_index = pc.Index("miniproject2")
 
-        self.conversation_history = []
         self.setup_sub_agents()
 
     def setup_sub_agents(self):
-        """Initializes sub-agents with their respective prompts."""
+        # TODO: Setup the sub-agents
         self.greeting_obnoxious_agent = Greeting_Obnoxious_Agent(openai)
         self.query_agent = Query_Agent(self.pinecone_index, openai, OpenAIEmbeddings(openai_api_key=openai.api_key))
         self.relevant_agent = Relevant_Documents_Agent(openai)
@@ -173,7 +170,12 @@ class Head_Agent:
         )
 
     def handle_query(self, query: str) -> str:
-        """Handles query and ensures a max of 3 API calls per user input."""
+        """
+        1. Check greeting & obnoxious in a single API call
+        2. If neither, refine query and retrieve docs from Pinecone
+        3. Check relevance
+        4. If relevant, answer with Answering_Agent
+        """
         is_greeting, is_obnoxious = self.greeting_obnoxious_agent.check_query(query)
 
         if is_greeting == "Yes":
@@ -187,7 +189,7 @@ class Head_Agent:
         if self.relevant_agent.get_relevance(refined_query, docs) == "No":
             return "No relevant documents found. Please ask a relevant question about Machine Learning."
 
-        return self.answering_agent.generate_response(refined_query, docs, self.conversation_history, mode="chatty")
+        return self.answering_agent.generate_response(refined_query, docs)
 
 
 # -------------- STREAMLIT APP -------------- #
@@ -199,7 +201,6 @@ if "head_agent" not in st.session_state:
         pinecone_key=st.secrets["PINECONE_API_KEY"]
     )
 
-prompt = st.chat_input("What would you like to chat about?")
-if prompt:
+if prompt := st.chat_input("What would you like to chat about?"):
     response = st.session_state["head_agent"].handle_query(prompt)
     st.chat_message("assistant").markdown(response)

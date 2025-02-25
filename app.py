@@ -201,6 +201,25 @@ if "head_agent" not in st.session_state:
         pinecone_key=st.secrets["PINECONE_API_KEY"]
     )
 
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []  # Initialize chat history
+
+# Display existing chat messages
+for message in st.session_state["messages"]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Capture user input
 if prompt := st.chat_input("What would you like to chat about?"):
+    # Store user input in session state
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Let Head_Agent handle it
     response = st.session_state["head_agent"].handle_query(prompt)
-    st.chat_message("assistant").markdown(response)
+
+    # Store assistant's response in session state and display it
+    st.session_state["messages"].append({"role": "assistant", "content": response})
+    with st.chat_message("assistant"):
+        st.markdown(response)
